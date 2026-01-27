@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   deefind:
-    image: ghcr.io/2t0m/deefind:latest
+    image: ghcr.io/2t0m/deefind:main
     container_name: deefind
     ports:
       - "1234:1234"
     environment:
-      - DOWNLOADER_API_URL=http://ip-address
-      - NAVIDROME_URL=http://ip-address:4533
-      - NAVIDROME_USER=admin
-      - NAVIDROME_PASS=admin
+      - DOWNLOADER_API_URL="${DOWNLOADER_API_URL}"
+      - NAVIDROME_URL="${NAVIDROME_URL}"
+      - NAVIDROME_USER="${NAVIDROME_USER}"
+      - NAVIDROME_PASS="${NAVIDROME_PASS}"
     restart: unless-stopped
