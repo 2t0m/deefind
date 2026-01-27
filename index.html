@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Deefind</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0a0e27">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Deefind">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='48' fill='url(%23grad)'/%3E%3Cpath d='M60 30c5 0 9 4 9 9v22c0 5-4 9-9 9s-9-4-9-9V39c0-5 4-9 9-9zm-20 10c5 0 9 4 9 9v12c0 5-4 9-9 9s-9-4-9-9V49c0-5 4-9 9-9z' fill='white'/%3E%3Ccircle cx='60' cy='30' r='4' fill='white'/%3E%3Ccircle cx='40' cy='40' r='4' fill='white'/%3E%3C/svg%3E">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='url(%23g)'/%3E%3Cpath d='M110 50c8 0 15 7 15 15v50c0 8-7 15-15 15s-15-7-15-15V65c0-8 7-15 15-15zm-40 20c8 0 15 7 15 15v30c0 8-7 15-15 15s-15-7-15-15V85c0-8 7-15 15-15z' fill='white'/%3E%3Ccircle cx='110' cy='50' r='8' fill='white'/%3E%3Ccircle cx='70' cy='70' r='8' fill='white'/%3E%3C/svg%3E">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            background-image: 
+                radial-gradient(at 20% 80%, rgba(102, 126, 234, 0.15) 0px, transparent 50%),
+                radial-gradient(at 80% 20%, rgba(118, 75, 162, 0.15) 0px, transparent 50%),
+                radial-gradient(at 40% 40%, rgba(29, 78, 216, 0.1) 0px, transparent 50%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .search-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 8px 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            margin-bottom: 40px;
+            transition: all 0.3s ease;
+        }
+
+        .search-container:focus-within {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(167, 139, 250, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(167, 139, 250, 0.1);
+        }
+
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .clear-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 8px;
+            display: none;
+            transition: all 0.2s;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .clear-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .clear-btn.visible {
+            display: flex;
+        }
+
+        #search-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 18px;
+            padding: 14px 8px;
+            background: transparent;
+            color: white;
+            font-weight: 400;
+        }
+
+        #search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .btn-send.loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .btn-send.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        .btn-send.loading span {
+            visibility: hidden;
+        }
+
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .track-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .track-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(167, 139, 250, 0.3);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        .track-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .track-cover {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .track-info {
+            flex: 1;
+        }
+
+        .track-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .track-artist {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .track-album {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+        }
+
+        .track-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .btn-preview {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-preview:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-preview.playing {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-send:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            padding: 20px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            padding: 40px;
+        }
+
+        .notification {
+            position: fixed;
+            top: max(20px, env(safe-area-inset-top));
+            right: 20px;
+            background: rgba(16, 185, 129, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1000;
+            max-width: 90%;
+            font-weight: 500;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification.error {
+            background: rgba(239, 68, 68, 0.95);
+        }
+
+        /* History Panel */
+        .history-toggle {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .history-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .history-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            max-width: 90vw;
+            height: 100vh;
+            background: rgba(10, 14, 39, 0.98);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: -4px 0 32px rgba(0, 0, 0, 0.5);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            padding: 80px 20px 20px 20px;
+            overflow-y: auto;
+        }
+
+        .history-panel.open {
+            right: 0;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 10px;
+        }
+
+        .history-title {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
+            max-width: 40px;
+            max-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        .history-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .history-clear {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .history-clear:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 12px;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(-5px);
+        }
+
+        .history-cover {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-track-title {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-track-artist {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-time {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 40px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Deefind</h1>
+        
+        <div class="search-container">
+            <div class="search-wrapper">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="A song, an artist, an album..."
+                    autocomplete="off"
+                >
+                <button class="clear-btn" id="clear-btn" aria-label="Clear">&times;</button>
+            </div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <!-- History Panel -->
+    <button class="history-toggle" id="history-toggle" title="History">🕐</button>
+    <div class="history-panel" id="history-panel">
+        <div class="history-header">
+            <div class="history-title">Download History</div>
+            <button class="history-close" id="history-close">&times;</button>
+        </div>
+        <button class="history-clear" id="history-clear">Clear History</button>
+        <div id="history-list"></div>
+    </div>
+
+    <script>
+        let currentAudio = null;
+        let searchTimeout = null;
+
+        const searchInput = document.getElementById('search-input');
+        const resultsDiv = document.getElementById('results');
+        const notification = document.getElementById('notification');
+        const clearBtn = document.getElementById('clear-btn');
+        const historyToggle = document.getElementById('history-toggle');
+        const historyPanel = document.getElementById('history-panel');
+        const historyClose = document.getElementById('history-close');
+        const historyList = document.getElementById('history-list');
+        const historyClear = document.getElementById('history-clear');
+
+        // Download history management
+        let downloadHistory = JSON.parse(localStorage.getItem('downloadHistory') || '[]');
+
+        // Handle clear button
+        searchInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                clearBtn.classList.add('visible');
+            } else {
+                clearBtn.classList.remove('visible');
+            }
+        });
+
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            clearBtn.classList.remove('visible');
+            resultsDiv.innerHTML = '';
+            searchInput.focus();
+        });
+
+        // History panel toggle
+        historyToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            historyPanel.classList.add('open');
+            renderHistory();
+        });
+
+        historyClose.addEventListener('click', function() {
+            historyPanel.classList.remove('open');
+        });
+
+        // Close history panel when clicking outside
+        document.addEventListener('click', function(e) {
+            if (historyPanel.classList.contains('open') && 
+                !historyPanel.contains(e.target) && 
+                !historyToggle.contains(e.target)) {
+                historyPanel.classList.remove('open');
+            }
+        });
+
+        historyClear.addEventListener('click', function() {
+            if (confirm('Clear all download history?')) {
+                downloadHistory = [];
+                localStorage.setItem('downloadHistory', JSON.stringify(downloadHistory));
+                renderHistory();
+            }
+        });
+
+        // Render history list
+        function renderHistory() {
+            if (downloadHistory.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">No downloads yet</div>';
+                return;
+            }
+
+            historyList.innerHTML = downloadHistory.map(item => `
+                <div class="history-item">
+                    <img src="${item.cover}" alt="${item.title}" class="history-cover">
+                    <div class="history-info">
+                        <div class="history-track-title">${item.title}</div>
+                        <div class="history-track-artist">${item.artist}</div>
+                        <div class="history-time">${formatTime(item.timestamp)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Format timestamp
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length < 2) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
+
+            searchTimeout = setTimeout(() => {
+                fetch(`/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        displayResults(data.data || []);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('Search error', true);
+                    });
+            }, 300);
+        });
+
+        function displayResults(tracks) {
+            if (tracks.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No results found</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = tracks.map(track => `
+                <div class="track-card">
+                    <div class="track-header">
+                        <img src="${track.album.cover_medium}" alt="${track.title}" class="track-cover">
+                        <div class="track-info">
+                            <div class="track-title">${track.title}</div>
+                            <div class="track-artist">${track.artist.name}</div>
+                            <div class="track-album">${track.album.title}</div>
+                        </div>
+                    </div>
+                    <div class="track-actions">
+                        <button class="btn-preview" onclick="togglePreview('${track.preview}', this)" title="Preview">
+                            ▶
+                        </button>
+                        <button class="btn-send" onclick="sendToDownloader('${track.link}', this, '${track.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${track.artist.name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${track.album.cover_small}')" title="Download">
+                            <span>⬇</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function togglePreview(previewUrl, button) {
+            if (currentAudio && !currentAudio.paused) {
+                currentAudio.pause();
+                currentAudio = null;
+                document.querySelectorAll('.btn-preview').forEach(btn => {
+                    btn.textContent = '▶';
+                    btn.classList.remove('playing');
+                });
+                return;
+            }
+
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+
+            currentAudio = new Audio(previewUrl);
+            currentAudio.play();
+
+            document.querySelectorAll('.btn-preview').forEach(btn => {
+                btn.textContent = '▶';
+                btn.classList.remove('playing');
+            });
+
+            button.textContent = '⏸';
+            button.classList.add('playing');
+
+            currentAudio.addEventListener('ended', () => {
+                button.textContent = '▶';
+                button.classList.remove('playing');
+            });
+        }
+
+        function sendToDownloader(link, button, title, artist, cover) {
+            // Add loading animation
+            button.classList.add('loading');
+            
+            fetch('/send_to_downloader', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    link: link,
+                    title: title,
+                    artist: artist
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove loading animation
+                button.classList.remove('loading');
+                
+                if (data.success) {
+                    // Add to history
+                    downloadHistory.unshift({
+                        title: title,
+                        artist: artist,
+                        cover: cover,
+                        timestamp: Date.now()
+                    });
+                    // Keep only last 50 items
+                    downloadHistory = downloadHistory.slice(0, 50);
+                    localStorage.setItem('downloadHistory', JSON.stringify(downloadHistory));
+                    
+                    try {
+                        const serverResponse = JSON.parse(data.response);
+                        showNotification('✓ ' + serverResponse.message);
+                    } catch (e) {
+                        showNotification('✓ Downloaded');
+                    }
+                } else if (data.error === 'already_exists') {
+                    showNotification('⚠ ' + data.message, true);
+                } else {
+                    showNotification('✗ Error: ' + (data.error || 'Unknown'), true);
+                }
+            })
+            .catch(error => {
+                // Remove loading animation on error
+                button.classList.remove('loading');
+                console.error('Error:', error);
+                showNotification('✗ Download failed', true);
+            });
+        }
+
+        function showNotification(message, isError = false) {
+            notification.textContent = message;
+            notification.className = 'notification show';
+            if (isError) {
+                notification.classList.add('error');
+            }
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Service Worker Registration (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    // Service worker registration failed, silently ignore
+                });
+            });
+        }
+
+        // Initialize history on page load
+        renderHistory();
+    </script>
+</body>
+</html>
