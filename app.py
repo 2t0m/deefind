@@ -30,14 +30,19 @@ def service_worker():
 @app.route('/search')
 def search():
     query = request.args.get('q', '')
-    if not query:
-        return jsonify({'data': []})
     
     try:
-        # Search in Deezer API
-        response = requests.get(f'https://api.deezer.com/search?q={query}')
-        data = response.json()
-        return jsonify(data)
+        if not query:
+            # Load chart if search is empty
+            response = requests.get('https://api.deezer.com/chart/')
+            data = response.json()
+            # Return tracks from chart
+            return jsonify({'data': data.get('tracks', {}).get('data', [])})
+        else:
+            # Search in Deezer API
+            response = requests.get(f'https://api.deezer.com/search?q={query}')
+            data = response.json()
+            return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

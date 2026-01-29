@@ -309,7 +309,7 @@
         /* History Panel */
         .history-toggle {
             position: fixed;
-            top: 100px;
+            top: 170px;
             right: 20px;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
@@ -326,6 +326,12 @@
             transition: all 0.3s;
             z-index: 999;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .history-toggle {
+                top: 200px;
+            }
         }
 
         .history-toggle:hover {
@@ -627,6 +633,25 @@
                         showNotification('Search error', true);
                     });
             }, 300);
+        });
+
+        // Load chart on initial page load
+        function loadChart() {
+            resultsDiv.innerHTML = '<div class="loading">Loading chart...</div>';
+            fetch('/search?q=')
+                .then(response => response.json())
+                .then(data => {
+                    displayResults(data.data || []);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsDiv.innerHTML = '';
+                });
+        }
+
+        // Load chart on page load
+        window.addEventListener('load', () => {
+            loadChart();
         });
 
         function displayResults(tracks) {
