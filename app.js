@@ -108,7 +108,7 @@ let currentAudio = null;
 
             historyList.innerHTML = downloadHistory.map(item => `
                 <div class="history-item">
-                    <img src="${item.cover}" alt="${item.title}" class="history-cover">
+                    <img src="${item.cover}" alt="${item.title}" class="history-cover" loading="lazy" decoding="async">
                     <div class="history-info">
                         <div class="history-track-title">${item.title}</div>
                         <div class="history-track-artist">${item.artist}</div>
@@ -154,8 +154,8 @@ let currentAudio = null;
             performSearch('');
         }
 
-        // Load chart on page load
-        window.addEventListener('load', () => {
+        // Start fetching as soon as DOM is ready (faster than waiting for full page load)
+        document.addEventListener('DOMContentLoaded', () => {
             loadChart();
         });
 
@@ -169,7 +169,7 @@ let currentAudio = null;
                 resultsDiv.innerHTML = items.map(track => `
                     <div class="track-card">
                         <div class="track-header">
-                            <img src="${track.album.cover_medium}" alt="${track.title}" class="track-cover">
+                            <img src="${track.album.cover_medium}" alt="${track.title}" class="track-cover" loading="lazy" decoding="async">
                             <div class="track-info">
                                 <div class="track-title">${track.title}</div>
                                 <div class="track-artist">${track.artist.name}</div>
@@ -190,7 +190,7 @@ let currentAudio = null;
                 resultsDiv.innerHTML = items.map(album => `
                     <div class="track-card">
                         <div class="track-header">
-                            <img src="${album.cover_medium}" alt="${album.title}" class="track-cover">
+                            <img src="${album.cover_medium}" alt="${album.title}" class="track-cover" loading="lazy" decoding="async">
                             <div class="track-info">
                                 <div class="track-title">${album.title}</div>
                                 <div class="track-artist">${album.artist.name}</div>
@@ -211,7 +211,7 @@ let currentAudio = null;
                 resultsDiv.innerHTML = items.map(playlist => `
                     <div class="track-card">
                         <div class="track-header">
-                            <img src="${playlist.picture_medium}" alt="${playlist.title}" class="track-cover">
+                            <img src="${playlist.picture_medium}" alt="${playlist.title}" class="track-cover" loading="lazy" decoding="async">
                             <div class="track-info">
                                 <div class="track-title">${playlist.title}</div>
                                 <div class="track-artist">${playlist.user?.name || 'Deezer'}</div>
@@ -528,7 +528,7 @@ let currentAudio = null;
 
         // Service Worker Registration (PWA)
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            document.addEventListener('DOMContentLoaded', () => {
                 navigator.serviceWorker.register('/sw.js').catch(() => {
                     // Service worker registration failed, silently ignore
                 });

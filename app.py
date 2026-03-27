@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, abort
+from flask_compress import Compress
 import requests
 import os
 from dotenv import load_dotenv
@@ -7,11 +8,24 @@ from deemix import generateDownloadObject
 from deemix.downloader import Downloader
 from deemix.settings import load as loadSettings
 import re
+from time import time
+from threading import Lock
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__, static_folder='.')
+app.config['COMPRESS_MIMETYPES'] = [
+    'text/html',
+    'text/css',
+    'application/javascript',
+    'application/json',
+    'text/plain',
+    'image/svg+xml'
+]
+app.config['COMPRESS_LEVEL'] = 5
+app.config['COMPRESS_MIN_SIZE'] = 500
+Compress(app)
 
 STATIC_ASSETS = {'app.js', 'manifest.json', 'styles.css', 'sw.js'}
 
@@ -21,6 +35,14 @@ NAVIDROME_URL = os.environ.get('NAVIDROME_URL', 'http://192.168.1.155:4533')
 NAVIDROME_USER = os.environ.get('NAVIDROME_USER', 'admin')
 NAVIDROME_PASS = os.environ.get('NAVIDROME_PASS', 'admin')
 DOWNLOAD_DIR = os.environ.get('DOWNLOAD_DIR', '/downloads')
+
+http = requests.Session()
+_api_cache = {}
+_CACHE_TTL_DEFAULT = 30
+
+downloader = None
+downloader_error = None
+downloader_lock = Lock()
 
 class DownloadListener:
     """Simple listener for deemix downloads"""
@@ -101,13 +123,48 @@ class DeezerDownloader:
         except Exception as e:
             raise Exception(f"Download failed: {str(e)}")
 
-# Initialize downloader
-try:
-    downloader = DeezerDownloader(DEEZER_ARL, DOWNLOAD_DIR)
-    print(f"✅ Deezer downloader initialized successfully")
-except Exception as e:
-    print(f"❌ Failed to initialize Deezer downloader: {str(e)}")
-    downloader = None
+def get_downloader():
+    """Lazy init to avoid slowing down app startup."""
+    global downloader, downloader_error
+
+    if downloader is not None:
+        return downloader
+
+    with downloader_lock:
+        if downloader is not None:
+            return downloader
+        try:
+            downloader = DeezerDownloader(DEEZER_ARL, DOWNLOAD_DIR)
+            downloader_error = None
+            print("✅ Deezer downloader initialized successfully")
+        except Exception as e:
+            downloader_error = str(e)
+            print(f"❌ Failed to initialize Deezer downloader: {downloader_error}")
+            downloader = None
+    return downloader
+
+def deezer_get_json(url, params=None, cache_ttl=_CACHE_TTL_DEFAULT):
+    """Fetch Deezer JSON with timeout + short-lived cache for faster repeated queries."""
+    params = params or {}
+    cache_key = (url, tuple(sorted(params.items())))
+    now = time()
+
+    if cache_ttl > 0 and cache_key in _api_cache:
+        cached_at, payload = _api_cache[cache_key]
+        if now - cached_at < cache_ttl:
+            return payload
+
+    response = http.get(url, params=params, timeout=8)
+    response.raise_for_status()
+    payload = response.json()
+
+    if cache_ttl > 0:
+        _api_cache[cache_key] = (now, payload)
+        if len(_api_cache) > 256:
+            oldest_key = min(_api_cache, key=lambda k: _api_cache[k][0])
+            del _api_cache[oldest_key]
+
+    return payload
 
 @app.route('/')
 def index():
@@ -126,14 +183,12 @@ def search():
     try:
         if not query:
             # Load chart if search is empty
-            response = requests.get('https://api.deezer.com/chart/')
-            data = response.json()
+            data = deezer_get_json('https://api.deezer.com/chart/', cache_ttl=45)
             # Return tracks from chart
-            return jsonify({'data': data.get('tracks', {}).get('data', [])})
+            return jsonify({'data': data.get('tracks', {}).get('data', [])[:24]})
         else:
             # Search in Deezer API
-            response = requests.get(f'https://api.deezer.com/search?q={query}')
-            data = response.json()
+            data = deezer_get_json('https://api.deezer.com/search', params={'q': query, 'limit': 24}, cache_ttl=15)
             return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -146,13 +201,11 @@ def search_albums():
     try:
         if not query:
             # Load chart albums if search is empty
-            response = requests.get('https://api.deezer.com/chart/')
-            data = response.json()
-            return jsonify({'data': data.get('albums', {}).get('data', [])})
+            data = deezer_get_json('https://api.deezer.com/chart/', cache_ttl=45)
+            return jsonify({'data': data.get('albums', {}).get('data', [])[:24]})
         else:
             # Search albums in Deezer API
-            response = requests.get(f'https://api.deezer.com/search/album?q={query}')
-            data = response.json()
+            data = deezer_get_json('https://api.deezer.com/search/album', params={'q': query, 'limit': 24}, cache_ttl=15)
             return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -165,13 +218,11 @@ def search_playlists():
     try:
         if not query:
             # Load chart playlists if search is empty
-            response = requests.get('https://api.deezer.com/chart/')
-            data = response.json()
-            return jsonify({'data': data.get('playlists', {}).get('data', [])})
+            data = deezer_get_json('https://api.deezer.com/chart/', cache_ttl=45)
+            return jsonify({'data': data.get('playlists', {}).get('data', [])[:24]})
         else:
             # Search playlists in Deezer API
-            response = requests.get(f'https://api.deezer.com/search/playlist?q={query}')
-            data = response.json()
+            data = deezer_get_json('https://api.deezer.com/search/playlist', params={'q': query, 'limit': 24}, cache_ttl=15)
             return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -232,8 +283,10 @@ def check_navidrome_exists(artist, title):
 @app.route('/download', methods=['POST'])
 def download():
     """Download music from Deezer"""
-    if not downloader:
-        return jsonify({'error': 'Deezer downloader not initialized. Check DEEZER_ARL token.'}), 500
+    active_downloader = get_downloader()
+    if not active_downloader:
+        error_msg = downloader_error or 'Deezer downloader not initialized. Check DEEZER_ARL token.'
+        return jsonify({'error': error_msg}), 500
     
     data = request.get_json()
     link = data.get('link')
@@ -256,7 +309,7 @@ def download():
     
     try:
         print(f'\n📥 Downloading from Deezer: {link}')
-        result = downloader.download(link)
+        result = active_downloader.download(link)
         print(f'✅ Download started: {result}')
         
         return jsonify(result)

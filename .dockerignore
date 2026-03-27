@@ -29,3 +29,4 @@ Thumbs.db
 
 # Other
 docker-compose.override.yml
+deploy.sh
